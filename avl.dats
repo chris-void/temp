@@ -9,9 +9,11 @@ avltree_t
     (key, value, avltree_t (key, value, hl), avltree_t(key, value, hr))
 
 datasort 
-AVLtree = 
-| E of ()
-| B of (AVLtree, AVLtree)
+AVLtree (int, int, int)= 
+| {key,value:nat}
+  leaf (key, value, 0) of ()
+| {key,value:nat}{hl,hr:nat | ~1 <= hl-hr; hl-hr <= 1}
+  node (key, value, 1+ max(hl, hr)) of (key, value, AVLtree (key, value, hl), AVLtree (key, value, hr))
 
 typedef avltree_t (key:t@ype, value:t@ype) = [n:nat] avltree_t(key, value, n)
 typedef cpm_t (a:t@ype) = (a, a) -<fun> Sgn
