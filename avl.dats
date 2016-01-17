@@ -327,6 +327,19 @@ case+ tree of
     then avltree_replace (left, k, v, cmp)
     else AVL_node (current, v, left, right)
 
+
+fun
+{key:t@ype} {value:t@ype}
+avltree_findmin
+{h:nat}(
+  tree: avltree (key, value, h)
+): (key, value) =
+case+ tree of
+| AVL_node (k, v, AVL_leaf (), _) => (k, v)
+| AVL_node (_, _, left, _) => avltree_findmin (left)
+| AVL_leaf () => $raise ElemNotExist ()
+
+
 fun
 {key:t@ype} {value:t@ype}
 avltree_delete
@@ -377,18 +390,7 @@ avltree_insert_or_replace
 if isMember (tree, k, cmp)
 then avltree_replace (tree, k, v, cmp)
 else avltree_insert (tree, k, v, cmp)
-
-fun
-{key:t@ype} {value:t@ype}
-avltree_findmin
-{h:nat}(
-  tree: avltree (key, value, h)
-): (key, value) =
-case+ tree of
-| AVL_node (k, v, AVL_leaf (), _) => (k, v)
-| AVL_node (_, _, left, _) => avltree_findmin (left)
-| AVL_leaf () => $raise ElemNotExist ()
-
+(*
 fun
 {key:t@ype} {value:t@ype}
 avltree_concat
@@ -413,7 +415,7 @@ in
   | AVL_leaf () => (key, value, )
   | AVL_node
 
-
+*)
 fun
 {key:t@ype} {value:t@ype}
 avltree_leftjoin
@@ -421,23 +423,23 @@ avltree_leftjoin
   k: key, v: value
 , tl: avltree (key, value, hl)
 , tr: avltree (key, value, hr)
-): <> avltree_inc (key, itm, hl) = let
+):  avltree (key, value, hl) = let
   val hl = height (tl) and hr = height (tr)
 in
   if hl >= hr + 2
   then let
     val+ AVL_node{hll,hlr} (kl, vl, tll, tlr) = tl
-    val [hlr:int] tlr = avltree_leftjoin<key, value> (k, v, tlr, tr)
+    val [hlr:int] tlr = avltree_leftjoin (k, v, tlr, tr)
     val hll = height (tll)
     val hlr = height (tlr)
   in
     if hlr <= hll + 1
-    then AVL_node {key, value}(1+ max (hll, hlr), kl, vl, tll, tlr)
-    else avltree_lrotate<key, value>(kl, vl, tll, tlr)
-  end else AVL_node {key, value}(k, v, tl, tr)
+    then AVL_node{hll,hlr} ( kl, vl, tll, tlr)
+    else rotate_left (kl, vl, tll, tlr)
+  end else AVL_node{hl,hr} (k, v, tl, tr)
 end
-/////
 
+(*
 fun
 {key:t@ype} {value:t@ype}
 avltree_takeout_min
@@ -607,3 +609,4 @@ avltree_concat {hl,hr:nat} (
       avltree_join (x_min, tl, tr)
     end // end of [_, _]
 // end of [avltree_concat]
+*)
