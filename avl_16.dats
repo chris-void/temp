@@ -8,15 +8,14 @@ datasort
 AVLtree =
 | leaf of ()
 | node of (AVLtree, AVLtree)
+// end of [AVLtree]
 
 dataprop
 AVLequal (AVLtree, AVLtree) =
 | AVLequal_l (leaf, leaf) of ()
 | {t1l,t1r:AVLtree}{t2l,t2r:AVLtree}
   AVLequal_n (node (t1l, t1r), node (t2l, t2r)) of (AVLequal (t1l, t2l), AVLequal(t1r, t2r))
-
-//prfun 
-//isEqual
+// end of [AVLequal]
 
 (* AVL tree height *)
 dataprop
@@ -25,6 +24,7 @@ AVLheight (AVLtree, int) =
 | {t1,t2:AVLtree}{h1,h2:nat}
   AVLheight_n (node (t1, t2), 1+ max(h1, h2)) of
     (AVLheight(t1, h1), AVLheight(t2, h2))
+// end of [AVLheight]
 
 dataprop isAVL (AVLtree) =
 | {t1,t2:AVLtree} {n1,n2:nat | n1 <= n2+1; n2 <= n1+1}
@@ -32,16 +32,13 @@ dataprop isAVL (AVLtree) =
 | isAVL_E (leaf ())
 // end of [isAVL]
 
-//prfun lemma_existence
-
-//prfun lemma_un
-
 (* AVL tree size *)
 dataprop
 AVLsize (AVLtree, int) =
 | AVLsize_l (leaf (), 0) of ()
 | {t1,t2:AVLtree}{s1,s2:nat}
   AVLsize_n (node (t1, t2), s1+s2+1) of (AVLsize(t1, s1), AVLsize(t2, s2))
+// end of [AVLsize]
 
 (* AVL tree shortest path *)
 dataprop
@@ -50,7 +47,7 @@ AVLshortestpath (AVLtree, int) =
 | {t1,t2:AVLtree}{sp1,sp2:nat}
   AVLshortestpath_n (node (t1, t2), 1+ min (sp1, sp2)) of
     (AVLshortestpath(t1, sp1), AVLshortestpath(t2, sp2))
-
+// end of [shortestpath] 
 
 //typedef cpm_t (a:t@ype) = (a, a) -<fun> Sgn
 
@@ -59,6 +56,7 @@ exception ElementDoesntExist   of ()
 
 (* ***** ***** *)
 
+// prove that AVLsize is functional on the two arguments
 prfun
 AVLsize_isfun{t:AVLtree}{s1,s2:nat} .<t>.
 (
@@ -73,7 +71,9 @@ case+ (pf1, pf2) of
   in
     //empty
   end
+// end of [AVLsize_isfun]
 
+// prove that AVLheight is functional on the two arguments
 prfun
 AVLheight_isfun{t:AVLtree}{h1,h2:nat} .<t>.
 (
@@ -88,7 +88,9 @@ case+ (pf1, pf2) of
   in
     //empty
   end
+// end of [AVLheight_isfun]
 
+// prove that AVLshortestpath is functional on the two arguments
 prfun
 AVLshortestpath_isfun{t:AVLtree}{sp1,sp2:nat} .<t>.
 (
@@ -103,6 +105,8 @@ case+ (pf1, pf2) of
   in
     //empty
   end
+// end of [AVLshortestpath_isfun]
+
 (*
 prfun AVLshortestpath_istot {t:AVLtree} .<t>. (): [sp:nat] AVLshortestpath (t, sp) = 
   sif t > 0
@@ -143,7 +147,7 @@ prfun AVLshortestpath_istot{t:AVLtree}{sp:nat} .<t>.
 
 (* ***** ***** *)
 (*
-** AVL tree in functional form
+** AVL tree using independent type
 *)
 datatype
 avltree_t
@@ -152,7 +156,10 @@ avltree_t
 | {hl,hr:nat | ~1 <= hl-hr; hl-hr <= 1}
   AVL_node (key, value, 1+ max (hl, hr)) of
     (key, value, avltree_t (key, value, hl), avltree_t(key, value, hr))
+// end of [avltree_t]
 typedef avltree_t (key:t@ype, value:t@ype) = [n:nat] avltree_t(key, value, n)
+
+//assume avltree (key, value) = avltree_t (key, value)
 
 
 (* AVL tree height *)
@@ -165,6 +172,14 @@ height
 case+ tree of
 | AVL_leaf () => 0
 | AVL_node  (_, _, tl, tr) => 1 + max (height (tl), height (tr))
+// end of [height]
+
+fun 
+{key:t@ype}{value:t@ype} 
+avltree_height
+(tree: avltree_t (key, value)): int = height tree
+//implement avltree_height {key} {value} (tree) = height tree
+
 
 (* AVL tree shortest path *)
 fun
@@ -176,6 +191,14 @@ shortestpath
 case+ tree of
 | AVL_leaf () => 0
 | AVL_node (_, _, tl ,tr) => 1+ min (shortestpath(tl), shortestpath(tr))
+// end of [height]
+
+fun 
+{key:t@ype}{value:t@ype}
+avltree_shortestpath
+(tree: avltree_t (key, value)): int = shortestpath tree
+// implement 
+
 
 (* AVL tree size *)
 fun
@@ -187,10 +210,18 @@ size
 case+ tree of
 | AVL_leaf () => 0
 | AVL_node (_, _, tl, tr) => 1+ size(tl) + size(tr)
+// end of [size]
+
+fun 
+{key:t@ype} {value:t@ype} 
+avltree_size
+(tree: avltree_t (key, value)): int = size tree
+//
+
 
 fun
 {key:t@ype}{value:t@ype}
-isMember
+member
 {h:nat}(
   tree: avltree_t (key, value, h), k: key, cmp: (key, key) -> int
 ): bool =
@@ -200,10 +231,17 @@ case+ tree of
     if cmp (current, k) = 0 then true
     else if cmp (current, k) > 0 then isMember (tl, k, cmp)
     else isMember (tr, k, cmp)
+// end of [member]
+
+fun 
+{key:t@ype} {value:t@ype} 
+avltree_member  
+(tree:avltree_t (key, value), key, cmp: (key, key) -> int): bool = member tree
+
 
 fun
 {key:t@ype}{value:t@ype}
-isEmpty
+empty
 {h:nat}(
   tree: avltree_t (key, value, h)
 ): bool =
@@ -211,6 +249,7 @@ case+ tree of
 | AVL_leaf () => true
 | _ => false
 
+//fun avltree_empty  {key:t@ype} {value:t@ype} (avltree (key, value)): bool
 (* ***** ***** *)
 
 fun

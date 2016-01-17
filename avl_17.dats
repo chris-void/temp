@@ -1,9 +1,6 @@
 
 #include "share/atspre_staload.hats"
 
-exception ElemExisted  of ()
-exception ElemNotExist of ()
-
 (*
 ** AVL tree in proof form
 *)
@@ -48,33 +45,34 @@ AVLshortestpath (AVLtree, int) =
 // end of [shortestpath]
 
 dataprop isAVL (AVLtree) =
-| isAVL_l (leaf ()) of ()
 | {t1,t2:AVLtree} {n1,n2:nat | n1 <= n2+1; n2 <= n1+1}
-  isAVL_n (node (t1, t2)) of 
-    (isAVL t1, isAVL t2, AVLheight (t1, n1), AVLheight (t2, n2))
+  isAVL_n (node (t1, t2)) of (isAVL t1, isAVL t2, AVLheight (t1, n1), AVLheight (t2, n2))
+| isAVL_l (leaf ()) of ()
 // end of [isAVL]
 
+exception ElementAlreadyExists of ()
+exception ElementDoesntExist   of ()
+
 (* ***** ***** *)
-
 (*
-  -> seems not necessary
-
 // prove that AVLequal is functional
+-> seems not necessary
+
 prfun
 AVLequal_isfun{t1,t2:AVLtree}
 (pf1: AVLtree, pf2: AVLtree) =
 *)
 
-(*  prove that AVLsize is a total relation on the two arguments  *)
+(* prove that AVLsize is a total relation on the two arguments *)
 prfun
 AVLsize_istot {t:AVLtree} .<t>. (
   ): [s:nat] AVLsize (t, s) =
 scase t of
 | leaf () => AVLsize_l ()
-| node (tl, tr) => AVLsize_n (AVLsize_istot{tl} (), AVLsize_istot{tr} ())
+| node (tl, tr) = AVLsize_n (AVLsize_istot{tl} (), AVLsize_istot{tr} ())
 // end of [AVLsize_istot]
 
-(*  prove that AVLsize is functional on the two arguments  *)
+(* prove that AVLsize is functional on the two arguments *)
 prfun
 AVLsize_isfun{t:AVLtree}{s1,s2:nat} .<t>.
 (
@@ -146,6 +144,9 @@ case+ (pf1, pf2) of
   end
 // end of [AVLshortestpath_isfun]
 
+//prfun isAVL_isfun
+//prfun isAVL_istot
+
 (* ***** ***** *)
 
 (*
@@ -160,7 +161,9 @@ avltree (key:t@ype, value:t@ype, int(*height*)) =
 // end of [avltree]
 typedef avltree (key:t@ype, value:t@ype) = [n:nat] avltree(key, value, n)
 
-(*  AVL tree height  *)
+//assume avltree (key, value) = avltree (key, value)
+
+(* AVL tree height *)
 fun
 {key:t@ype}{value:t@ype}
 height
@@ -172,7 +175,7 @@ case+ tree of
 | AVL_node (_, _, tl, tr) => 1+ max (height (tl), height (tr))
 // end of [height]
 
-(*  AVL tree shortest path  *)
+(* AVL tree shortest path *)
 fun
 {key:t@ype}{value:t@ype}
 shortestpath
@@ -184,7 +187,7 @@ case+ tree of
 | AVL_node (_, _, tl ,tr) => 1+ min (shortestpath(tl), shortestpath(tr))
 // end of [height]
 
-(*  AVL tree size  *)
+(* AVL tree size *)
 fun
 {key:t@ype}{value:t@ype}
 size
@@ -196,7 +199,6 @@ case+ tree of
 | AVL_node (_, _, tl, tr) => 1+ size(tl) + size(tr)
 // end of [size]
 
-(*  if the element is a member of this tree  *)
 fun
 {key:t@ype}{value:t@ype}
 isMember
@@ -211,7 +213,6 @@ case+ tree of
       then isMember (tl, k, cmp)
       else isMember (tr, k, cmp)
 // end of [isMember]
-
 
 fun
 {key:t@ype}{value:t@ype}
@@ -279,30 +280,35 @@ end
 fun
 {key:t@ype}{value:t@ype}
 avltree_insert
-{h:nat}(
-  tree: avltree (key, value, h), k: key, v: value, cmp: (key, key) -> int
-): [hh:nat|h <= hh; hh <= h+1] avltree (key, value, hh) = 
-case+ tree of 
-| AVL_leaf () => AVL_node (k, v, AVL_leaf (), AVL_leaf ())
-| AVL_node (current_key, current_value, left, right) =>
-  if cmp (k, current_key) < 0 
-  then let
-    val t = avltree_insert (left, k, v,cmp)
-  in
-    if height t - height right > 1
-    then rotate_right (current_key, current_value, t, right)
-    else AVL_node (current_key, current_value, t, right)
-  end
-  else if cmp (k, current_key) > 0 
-    then let
-      val t = avltree_insert (right, k, v, cmp)
-    in
-      if height t - height left > 1
-      then rotate_left (current_key, current_value, left, t)
-      else AVL_node (current_key, current_value, left, t)
-    end
-  else
-    $raise ElemExisted ()
+(
+  tree: avltree (key, value), k: key, v: value, cmp: (key, key) -> int
+): avltree (key, value) = let
+fun insert {h:nat} (t: avltree (key, value, h)): [hh:nat|h <= hh; hh <= h+1] avltree (key, value, hh) =
+		case+ t of
+		| AVL_leaf () => AVL_node (k, v, AVL_leaf (), AVL_leaf ())
+		| AVL_node (current_key, current_value, left, right) =>
+			if cmp (k, current_key) < 0 then
+				let
+					val t = insert left
+				in
+					if height t - height right > 1
+					then rotate_right (current_key, current_value, t, right)
+					else AVL_node (current_key, current_value, t, right)
+				end
+			else if cmp (k, current_key) > 0 then
+				let
+					val t = insert right
+				in
+					if height t - height left > 1
+					then rotate_left (current_key, current_value, left, t)
+					else AVL_node (current_key, current_value, left, t)
+				end
+			else
+				$raise ElementAlreadyExists ()
+in
+	insert tree
+end
+
 
 fun
 {key:t@ype} {value:t@ype}
@@ -311,65 +317,64 @@ avltree_replace
   tree: avltree (key, value), k: key, v: value, cmp: (key, key) -> int
 ): avltree (key, value) =
 case+ tree of
-| AVL_leaf () => $raise ElemNotExist ()
+| AVL_leaf () => $raise ElementDoesntExist ()
 | AVL_node (current, _, left, right) =>
   if cmp (k, current) > 0
   then avltree_replace (right, k, v, cmp)
-  else if cmp (k, current) < 0
+	else if cmp (k, current) < 0
     then avltree_replace (left, k, v, cmp)
     else AVL_node (current, v, left, right)
 
 fun
 {key:t@ype} {value:t@ype}
-avltree_findmin
-{h:nat}(
-  tree: avltree (key, value, h)
-): (key, value) = 
-case+ tree of
-| AVL_node (k, v, AVL_leaf (), _) => (k, v)
-| AVL_node (_, _, left, _)      => avltree_findmin left
-| AVL_leaf ()                   => $raise ElemNotExist ()
-
-fun
-{key:t@ype} {value:t@ype}
 avltree_delete
-{h:nat}(
-  tree: avltree (key, value, h), k:key, cmp: (key, key) -> int
-): [hh:nat|h-1 <= hh; hh <= h] avltree (key, value, hh) =
-case+ tree of 
-| AVL_leaf () => $raise ElemNotExist ()
-| AVL_node (current, _, AVL_leaf (), AVL_leaf ()) =>
-  if cmp (current, k) = 0
-  then AVL_leaf ()
-  else $raise ElemNotExist ()
-| AVL_node (current, v, left, right) =>
-  if cmp (k, current) < 0
-  then let
-    val newleft = avltree_delete (left, k, cmp)
+(
+  tree: avltree (key, value), k:key, cmp: (key, key) -> int
+): avltree (key, value) = let
+  fun find_min (tree: avltree (key, value)): (key, value) =
+	case+ tree of
+	| AVL_node (k, v, AVL_leaf (), _) => (k, v)
+	| AVL_node (_, _, left, _)      => find_min left
+	| AVL_leaf ()                   => $raise ElementDoesntExist () (* this should not happen *)
+
+  fun delete {h:nat} (tree: avltree (key, value, h), k: key): [hh:nat|h-1 <= hh; hh <= h] avltree (key, value, hh) =
+  case+ tree of
+  | AVL_leaf () => $raise ElementDoesntExist ()
+  | AVL_node (current, _, AVL_leaf (), AVL_leaf ()) =>
+  		if cmp (current, k) = 0
+  		then AVL_leaf ()
+  		else $raise ElementDoesntExist ()
+  | AVL_node (current, v, left, right) =>
+  		if cmp (k, current) < 0
+      then let
+  			val newleft = delete (left, k)
+  		in
+  			if height right - height newleft > 1
+  			then rotate_left (current, v, newleft, right)
+  			else AVL_node (current, v, newleft, right)
+  		end
+  		else if cmp (k, current) > 0
+      then let
+  			val newright = delete (right, k)
+  		in
+  			if height left - height newright > 1
+  			then rotate_right (current, v, left, newright)
+  			else AVL_node (current, v, left, newright)
+  		end else
+  		case+ (left, right) of
+  		| (AVL_leaf (), _) => right
+  		| (_, AVL_leaf ()) => left
+  		| (_, _) => let
+          val (mink, minv) = find_min right
+  			  val newright = delete (right, mink)
+  			in
+  				if height left - height newright > 1
+  				then rotate_right (mink, minv, left, newright)
+  				else AVL_node (mink, minv, left, newright)
+  			end
   in
-    if height right - height newleft > 1
-    then rotate_left (current, v, newleft, right)
-    else AVL_node (current, v, newleft, right)
+  	delete (tree, k)
   end
-  else if cmp (k, current) > 0
-    then let
-      val newright = avltree_delete (right, k, cmp)
-    in
-      if height left - height newright > 1
-      then rotate_right (current, v, left, newright)
-      else AVL_node (current, v, left, newright)
-    end else
-    case+ (left, right) of
-    | (AVL_leaf (), _) => right
-    | (_, AVL_leaf ()) => left
-    | (_, _) => let
-        val (mink, minv) = avltree_findmin right
-        val newright = avltree_delete (right, mink, cmp)
-      in
-        if height left - height newright > 1
-        then rotate_right (mink, minv, left, newright)
-        else AVL_node (mink, minv, left, newright)
-      end
 
 fun
 {key:t@ype} {value:t@ype}
