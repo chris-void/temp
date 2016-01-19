@@ -389,62 +389,15 @@ case+ tree of
 | AVL_node (_, _, left, _) => avltree_findmin (left)
 | AVL_leaf () => $raise ElemNotExist ()
 
-fun
-{key:t@ype} {value:t@ype}
-avltree_concat
-{h1,h2:nat}(
-  t1: avltree(key, value, h1), t2: avltree(key, value, h2)
-) [h:nat] avltree(key, value, h) =
-case+ (t1, t2) of
-| (AVL_leaf (), _) => t1
-| (_, AVL_leaf ()) => t2
-| (_, _) =>>
-
-
-fun
-{key:t@ype} {value:t@ype}
-avltree_takeout_min
-{h:nat} .<h>. (
-  t: avltree(key, value, h), cmpk: (key, key) -> int, cmpv: (value, value) -> int
-): avltree_dec (key, value, h) = let
-  val+ AVL_node (k, v, tl, tr) = t
-in
-  case+ tl of
-  | AVL_leaf () => (key, value, )
-  | AVL_node
-
-
-fun
-{key:t@ype} {value:t@ype}
-avltree_leftjoin
-{hl,hr:nat | hl >= hr} .<hl>. (
-  k: key, v: value
-, tl: avltree (key, value, hl)
-, tr: avltree (key, value, hr)
-): <> avltree_inc (key, itm, hl) = let
-  val hl = height (tl) and hr = height (tr)
-in
-  if hl >= hr + 2
-  then let
-    val+ AVL_node{hll,hlr} (kl, vl, tll, tlr) = tl
-    val [hlr:int] tlr = avltree_leftjoin<key, value> (k, v, tlr, tr)
-    val hll = height (tll)
-    val hlr = height (tlr)
-  in
-    if hlr <= hll + 1
-    then AVL_node {key, value}(1+ max (hll, hlr), kl, vl, tll, tlr)
-    else avltree_lrotate<key, value>(kl, vl, tll, tlr)
-  end else AVL_node {key, value}(k, v, tl, tr)
-end
 /////
 
-fun
-{key:t@ype} {value:t@ype}
+
+fun{a:t@ype}
 avltree_takeout_min
-  {h:nat} .<h>. (
-  t: avltree (key, value, h), x0: &a? >> a
-) :<> avltree_dec (key, value, h) = let
-  val+ B {..} {hl,hr} (k, v, tl, tr) = t
+  {h:pos} .<h>. (
+  t: avltree (a, h), x0: &a? >> a
+) :<> avltree_dec (a, h) = let
+  val+ B {..} {hl,hr} (_, x, tl, tr) = t
 in
   case+ tl of
   | B _ => let
@@ -607,3 +560,14 @@ avltree_concat {hl,hr:nat} (
       avltree_join (x_min, tl, tr)
     end // end of [_, _]
 // end of [avltree_concat]
+
+fun
+{key:t@ype} {value:t@ype}
+avltree_concat
+{h1,h2:nat}(
+  t1: avltree(key, value, h1), t2: avltree(key, value, h2)
+) [h:nat] avltree(key, value, h) =
+case+ (t1, t2) of
+| (AVL_leaf (), _) => t1
+| (_, AVL_leaf ()) => t2
+| (_, _) =>>
